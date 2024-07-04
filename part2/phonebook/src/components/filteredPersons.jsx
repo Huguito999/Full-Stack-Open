@@ -1,13 +1,16 @@
-import Person from "./person"
-  const FilteredPersons = ({filteredPersons}) => {
-    return (
-        <div>
-           {filteredPersons.map((person, index) => (
-            <Person key={index} person={person} />
-            ))}
-        </div>
-       )
-       
-    }
-    export default FilteredPersons
-        
+import React from "react";
+
+const FilteredPersons = ({ filteredPersons, handleDelete }) => {
+  return (
+    <>
+      {filteredPersons.map((person) => (
+        <li key={person.id}>
+          {person.name} {person.number}
+          <button onClick={() => handleDelete(person.id)}>delete</button>
+        </li>
+      ))}
+    </>
+  );
+};
+
+export default FilteredPersons;
