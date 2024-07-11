@@ -1,10 +1,20 @@
 const express = require('express')
+const morgan = require('morgan')
+const cors = require('cors')
 const app = express()
+app.use(cors())
 app.use(express.json())
+
+morgan.token('body', (req) => {
+  return req.method === 'POST' ? JSON.stringify(req.body) : '';
+});
+
+app.use(morgan(':method :url :status :res[content-length] - :response-time ms :body'));
+
 let phonebook = [
   {
     "id": 1,
-    "name": "Arto Hellas",
+    "name": "Ramon",
     "number": "040-123456"
   },
   {
@@ -60,14 +70,14 @@ app.delete('/api/persons/:id', (request, response) => {
 app.post('/api/persons', (request, response) => {
   const body = request.body
   if (!body.name || !body.number) {
-    return response.status(400).json({ 
-      error: 'Name or number missing' 
+    return response.status(400).json({
+      error: 'Name or number missing'
     });
   }
   const duplicatePerson = phonebook.find(person => person.name === body.name);
   if (duplicatePerson) {
-    return response.status(400).json({ 
-      error: 'Name must be unique' 
+    return response.status(400).json({
+      error: 'Name must be unique'
     });
   }
 
