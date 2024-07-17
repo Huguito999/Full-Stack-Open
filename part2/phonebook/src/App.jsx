@@ -1,5 +1,4 @@
 import React, { useState, useEffect } from "react";
-import axios from "axios";
 import Filter from "./components/filter";
 import FilteredPersons from "./components/filteredPersons";
 import {
@@ -15,12 +14,20 @@ const App = () => {
   const [newName, setNewName] = useState("");
   const [newNumber, setNewNumber] = useState("");
   const [filter, setFilter] = useState("");
-  const [message, setMessage] = useState("");
+  const [message, setMessage] = useState(null);
+  const [errorMessage, setErrorMessage] = useState(null);
 
   useEffect(() => {
-    getAllPersons().then((persons) => {
-      setPersons(persons);
-    });
+    getAllPersons()
+      .then((initialPersons) => {
+        setPersons(Array.isArray(initialPersons) ? initialPersons : []);
+      })
+      .catch((error) => {
+        setErrorMessage("Failed to fetch persons");
+        setTimeout(() => {
+          setErrorMessage(null);
+        }, 5000);
+      });
   }, []);
 
   const handleNameChange = (event) => {
@@ -45,17 +52,26 @@ const App = () => {
         )
       ) {
         const updatedPerson = { ...person, number: newNumber };
-        updatePerson(person.id, updatedPerson).then((returnedPerson) => {
-          setPersons(
-            persons.map((p) => (p.id !== person.id ? p : returnedPerson))
-          );
-          setNewName("");
-          setNewNumber("");
-          setMessage(`Updated ${returnedPerson.name} `);
-          setTimeout(() => {
-            setMessage(null);
-          }, 5000);
-        });
+        updatePerson(person.id, updatedPerson)
+          .then((returnedPerson) => {
+            setPersons(
+              persons.map((p) => (p.id !== person.id ? p : returnedPerson))
+            );
+            setNewName("");
+            setNewNumber("");
+            setMessage(`Updated ${returnedPerson.name}`);
+            setTimeout(() => {
+              setMessage(null);
+            }, 5000);
+          })
+          .catch((error) => {
+            setErrorMessage(
+              error.response?.data?.error || "Error updating person"
+            );
+            setTimeout(() => {
+              setErrorMessage(null);
+            }, 5000);
+          });
         return;
       }
     } else {
@@ -63,34 +79,55 @@ const App = () => {
         name: newName,
         number: newNumber,
       };
-      addNewPerson(newPerson).then((response) => {
-        setPersons(persons.concat(response));
-        setNewName("");
-        setNewNumber("");
-        setMessage(`Added ${response.name} `);
-        setTimeout(() => {
-          setMessage(null);
-        }, 5000);
-      });
+      addNewPerson(newPerson)
+        .then((response) => {
+          setPersons(persons.concat(response));
+          setNewName("");
+          setNewNumber("");
+          setMessage(`Added ${response.name}`);
+          setTimeout(() => {
+            setMessage(null);
+          }, 5000);
+        })
+        .catch((error) => {
+          if (error.response && error.response.data) {
+            setErrorMessage(error.response.data.error || "Error adding person");
+          } else {
+            setErrorMessage("Error adding person");
+          }
+          setTimeout(() => {
+            setErrorMessage(null);
+          }, 5000);
+        });
     }
   };
 
   const handleDelete = (id) => {
     if (window.confirm("Are you sure you want to delete this person?")) {
-      deletePerson(id).then(() => {
-        setPersons(persons.filter((person) => person.id !== id));
-      });
+      deletePerson(id)
+        .then(() => {
+          setPersons(persons.filter((person) => person.id !== id));
+        })
+        .catch((error) => {
+          setErrorMessage("Error deleting person");
+          setTimeout(() => {
+            setErrorMessage(null);
+          }, 5000);
+        });
     }
   };
 
-  const filteredPersons = persons.filter((person) =>
-    person.name.toLowerCase().includes(filter.toLowerCase())
-  );
+  const filteredPersons = Array.isArray(persons)
+    ? persons.filter((person) =>
+        person.name.toLowerCase().includes(filter.toLowerCase())
+      )
+    : [];
 
   return (
     <div>
       <h2>Phonebook</h2>
       {message && <div className="message">{message}</div>}
+      {errorMessage && <div className="error">{errorMessage}</div>}
       <Filter filter={filter} handleFilter={handleFilter} />
       <form onSubmit={handleSubmit}>
         <h2>Add New</h2>
